@@ -4,7 +4,7 @@ import unittest
 from aplicacion.modelos import (RedBayes,SolicitudInferencia)
 
 # Crear una red de ejemplo para las pruebas
-def crear_red_prueba():
+def redPrueba():
     datos = {
         "nombre": "Red del clima",
         "nodos": [
@@ -65,30 +65,28 @@ def crear_red_prueba():
 class PruebasModelos(unittest.TestCase):
 
     # Comprobar que podemos crear una red
-    def test_crear_red(self):
-        red = crear_red_prueba()
+    def testCrearRed(self):
+        red = redPrueba()
 
         self.assertEqual(len(red.nodos), 3)
         self.assertEqual(red.nombre, "Red del clima")
         self.assertEqual(red.nodos[1].padres, ["A"])
 
     # Comprobar que conservamos los datos al guardar
-    def test_guardar_y_recuperar(self):
-        red = crear_red_prueba()
+    def testguardarYrecuperar(self):
+        red = redPrueba()
 
-        datos_json = red.model_dump_json()
-        red_recuperada = RedBayes.model_validate_json(
-            datos_json
-        )
+        datosJSON = red.model_dump_json()
+        redRecuperada = RedBayes.model_validate_json(datosJSON)
 
         self.assertEqual(
             red.model_dump(),
-            red_recuperada.model_dump()
+            redRecuperada.model_dump()
         )
 
         # Comprobar que podemos definir una consulta
-    def test_crear_consulta(self):
-        red = crear_red_prueba()
+    def testcrearConsulta(self):
+        red = redPrueba()
 
         consulta = SolicitudInferencia(
             red=red,
