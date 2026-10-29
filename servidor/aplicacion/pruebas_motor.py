@@ -5,14 +5,12 @@ from .enumeracion import enumerar
 
 def probar_motor():
     red = RedBayesiana()
+
     red.agregar_nodo(
         Nodo(
             nombre="A",
             estados=["a1", "a2"],
-            cpt={
-                ("a1",): 0.6,
-                ("a2",): 0.4,
-            },
+            cpt={("a1",): 0.6, ("a2",): 0.4},
         )
     )
 
@@ -45,55 +43,139 @@ def probar_motor():
     )
 
     errores = validar_red(red)
-    if errores:
-        print("errores de validacion:")
-        for error in errores:
-            print("-", error)
-        return
-    else:
-        print("validacion de la red completada correctamente.") 
-    evidencia = {"A": "a1"}
-    resultado_eliminacion = inferir(
-        red,
-        consulta="B",
-        evidencia=evidencia,
-    )
+    assert not errores, f"Errores de validación: {errores}"
+    print("Validación de la red: correcta.")
 
-    resultado_enumeracion = enumerar(
-        red,
-        consulta="B",
-        evidencia=evidencia,
-    )
+    resultado = inferir(red, consulta="B", evidencia={"A": "a1"})
+    resultado_enum = enumerar(red, consulta="B", evidencia={"A": "a1"})
 
-    print("eliminación de variables:", resultado_eliminacion)
-    print("enumeración exhaustiva:", resultado_enumeracion)
-    for estado in resultado_eliminacion:
-        assert abs(
-            resultado_eliminacion[estado]
-            -resultado_enumeracion[estado]
-        ) < 1e-6,(
-             f"Los resultados no coinciden para {estado}"
-        )
+    print("Eliminación de variables:", resultado)
+    print("Enumeración exhaustiva:", resultado_enum)
 
-    print("Prueba completada correctamente.")
-    resultado_sin_evidencia = inferir(
-        red,
-        consulta="B",
-    )
-    
-    print("consulta B sin evidencia:", resultado_sin_evidencia)
+    for estado in resultado:
+        assert abs(resultado[estado] - resultado_enum[estado]) < 1e-6
+
+    resultado_sin_evidencia = inferir(red, consulta="B")
+    print("Consulta B sin evidencia:", resultado_sin_evidencia)
     assert abs(resultado_sin_evidencia["b1"] - 0.5) < 1e-6
     assert abs(resultado_sin_evidencia["b2"] - 0.5) < 1e-6
-    evidencia_a2 = {"A": "a2"}
-    resultado_a2 = inferir(
-        red,
-        consulta="B",
-        evidencia=evidencia_a2,
-    )
 
-    print("consulta B con A = a2:", resultado_a2)
+    resultado_a2 = inferir(
+        red, consulta="B", evidencia={"A": "a2"}
+    )
+    print("Consulta B con A = a2:", resultado_a2)
     assert abs(resultado_a2["b1"] - 0.2) < 1e-6
     assert abs(resultado_a2["b2"] - 0.8) < 1e-6
 
+    print("Pruebas del motor: correctas.")
+
+
+def probar_probabilidad_incorrecta():
+    red = RedBayesiana()
+
+    red.agregar_nodo(
+        Nodo(
+            nombre="A",
+            estados=["a1", "a2"],
+            cpt={("a1",): 1.2, ("a2",): -0.2},
+        )
+    )
+    red.agregar_nodo(
+        Nodo(
+            nombre="B",
+            estados=["b1", "b2"],
+            cpt={("b1",): 0.5, ("b2",): 0.5},
+        )
+    )
+    red.agregar_nodo(
+        Nodo(
+            nombre="C",
+            estados=["c1", "c2"],
+            cpt={("c1",): 0.5, ("c2",): 0.5},
+        )
+    )
+
+    errores = validar_red(red)
+    print("Errores detectados:", errores)
+    assert errores, "No se detectaron las probabilidades incorrectas."
+    print("Prueba de probabilidades incorrectas: correcta.")
+
+def probar_cpt_incompleta():
+    red = RedBayesiana()
+
+    red.agregar_nodo(
+        Nodo(
+            nombre="A",
+            estados=["a1", "a2"],
+            cpt={("a1",): 0.6},
+        )
+    )
+    red.agregar_nodo(
+        Nodo(
+            nombre="B",
+            estados=["b1", "b2"],
+            cpt={("b1",): 0.5, ("b2",): 0.5},
+        )
+    )
+    red.agregar_nodo(
+        Nodo(
+            nombre="C",
+            estados=["c1", "c2"],
+            cpt={("c1",): 0.5, ("c2",): 0.5},
+        )
+    )
+
+    errores = validar_red(red)
+    assert errores, "No se detectó la CPT incompleta."
+    print("Prueba de CPT incompleta: correcta.")
+
+
+def probar_ciclo():
+    red = RedBayesiana()
+
+    red.agregar_nodo(
+        Nodo(
+            nombre="A",
+            estados=["a1", "a2"],
+            padres=["B"],
+            cpt={
+                ("b1", "a1"): 0.5,
+                ("b1", "a2"): 0.5,
+                ("b2", "a1"): 0.5,
+                ("b2", "a2"): 0.5,
+            },
+        )
+    )
+    red.agregar_nodo(
+        Nodo(
+            nombre="B",
+            estados=["b1", "b2"],
+            padres=["A"],
+            cpt={
+                ("a1", "b1"): 0.5,
+                ("a1", "b2"): 0.5,
+                ("a2", "b1"): 0.5,
+                ("a2", "b2"): 0.5,
+            },
+        )
+    )
+    red.agregar_nodo(
+        Nodo(
+            nombre="C",
+            estados=["c1", "c2"],
+            cpt={("c1",): 0.5, ("c2",): 0.5},
+        )
+    )
+
+    errores = validar_red(red)
+    assert errores, "No se detectó el ciclo."
+    print("Prueba de ciclo: correcta.")
+
+
 if __name__ == "__main__":
+    print("Iniciando pruebas...")
     probar_motor()
+    probar_probabilidad_incorrecta()
+    probar_cpt_incompleta()
+    probar_ciclo()
+    print("Todas las pruebas terminaron.")
