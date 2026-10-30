@@ -1,122 +1,263 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+
+import { useEffect, useState } from 'react';
+import { clienteApi } from './servicios/clienteApi';
+import type { RedBayes, RespuestaInferencia } from './tipos/red';
+import './App.css';
+
+
+// Red de prueba
+const redEjemplo: RedBayes = {
+    nombre: 'Red de prueba IDK',
+    formato: 1,
+    nodos: [
+        {
+            id: 'A',
+            nombre: 'Lluvia',
+            estados: ['Si', 'No'],
+            padres: [],
+            posicion: { x: 100, y: 100 },
+            tabla: [
+                {
+                    condiciones: {},
+                    probabilidades: { Si: 0.3, No: 0.7 }
+                }
+            ]
+        },
+        {
+            id: 'B',
+            nombre: 'Cesped mojado',
+            estados: ['Si', 'No'],
+            padres: ['A'],
+            posicion: { x: 350, y: 100 },
+            tabla: [
+                {
+                    condiciones: { A: 'Si' },
+                    probabilidades: { Si: 0.9, No: 0.1 }
+                },
+                {
+                    condiciones: { A: 'No' },
+                    probabilidades: { Si: 0.2, No: 0.8 }
+                }
+            ]
+        },
+        {
+            id: 'C',
+            nombre: 'Trafico',
+            estados: ['Si', 'No'],
+            padres: [],
+            posicion: { x: 100, y: 300 },
+            tabla: [
+                {
+                    condiciones: {},
+                    probabilidades: { Si: 0.4, No: 0.6 }
+                }
+            ]
+        }
+    ]
+};
+
 
 function App() {
-  const [count, setCount] = useState(0)
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    // Estado del servidor
+    const [conexion, setConexion] = useState('Comprobando...');
 
-      <div className="ticks"></div>
+    // Datos de consulta
+    const [consulta, setConsulta] = useState('A');
+    const [variableEvidencia, setVariableEvidencia] = useState('B');
+    const [estadoEvidencia, setEstadoEvidencia] = useState('Si');
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+    // Resultados
+    const [resultado, setResultado] =
+        useState<RespuestaInferencia | null>(null);
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    const [mensaje, setMensaje] = useState('');
+    const [error, setError] = useState('');
+    const [cargando, setCargando] = useState(false);
+
+
+    // Comprobar conexion al iniciar
+    useEffect(() => {
+        clienteApi.estado()
+            .then(datos => setConexion(datos.estado))
+            .catch(() => setConexion('Desconectado'));
+    }, []);
+
+
+    // Validar la red
+    async function validar() {
+        try {
+            setError('');
+            const respuesta = await clienteApi.validar(redEjemplo);
+            setMensaje(respuesta.mensaje);
+        } catch (problema) {
+            setError(
+                problema instanceof Error
+                    ? problema.message
+                    : 'Error de validacion'
+            );
+        }
+    }
+
+
+    // Ejecutar eliminacion de variables
+    async function calcular() {
+        setCargando(true);
+        setError('');
+        setResultado(null);
+
+        const evidencia = variableEvidencia
+            ? { [variableEvidencia]: estadoEvidencia }
+            : {};
+
+        try {
+            const respuesta = await clienteApi.inferir(
+                redEjemplo,
+                [consulta],
+                evidencia,
+                false
+            );
+
+            setResultado(respuesta);
+        } catch (problema) {
+            setError(
+                problema instanceof Error
+                    ? problema.message
+                    : 'Error de inferencia'
+            );
+        } finally {
+            setCargando(false);
+        }
+    }
+
+
+    return (
+        <main className="aplicacion">
+
+            <header className="encabezado">
+                <div>
+                    <h1>Redes Bayesianas IDK</h1>
+                    <p>Modelos probabilistas</p>
+                </div>
+
+                <span className="estado">
+                    Backend: {conexion}
+                </span>
+            </header>
+
+            <section className="panel">
+                <h2>Red bayesiana</h2>
+                <p>{redEjemplo.nombre}</p>
+
+                <div className="nodos">
+                    {redEjemplo.nodos.map(nodo => (
+                        <div className="nodo" key={nodo.id}>
+                            <strong>{nodo.nombre}</strong>
+                            <small>ID: {nodo.id}</small>
+                            <small>
+                                Padres: {
+                                    nodo.padres.join(', ') || 'Ninguno'
+                                }
+                            </small>
+                        </div>
+                    ))}
+                </div>
+
+                <button onClick={validar}>
+                    Validar red
+                </button>
+
+                {mensaje && <p className="exito">{mensaje}</p>}
+            </section>
+
+            <section className="panel">
+                <h2>Consulta probabilistica</h2>
+
+                <div className="campos">
+                    <label>
+                        Variable de consulta
+                        <select
+                            value={consulta}
+                            onChange={evento =>
+                                setConsulta(evento.target.value)
+                            }
+                        >
+                            {redEjemplo.nodos.map(nodo => (
+                                <option key={nodo.id} value={nodo.id}>
+                                    {nodo.nombre}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+
+                    <label>
+                        Variable de evidencia
+                        <select
+                            value={variableEvidencia}
+                            onChange={evento => {
+                                setVariableEvidencia(evento.target.value);
+                                setEstadoEvidencia('Si');
+                            }}
+                        >
+                            <option value="">Sin evidencia</option>
+                            {redEjemplo.nodos.map(nodo => (
+                                <option key={nodo.id} value={nodo.id}>
+                                    {nodo.nombre}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+
+                    <label>
+                        Estado de evidencia
+                        <select
+                            value={estadoEvidencia}
+                            disabled={!variableEvidencia}
+                            onChange={evento =>
+                                setEstadoEvidencia(evento.target.value)
+                            }
+                        >
+                            <option value="Si">Si</option>
+                            <option value="No">No</option>
+                        </select>
+                    </label>
+                </div>
+
+                <button onClick={calcular} disabled={cargando}>
+                    {cargando ? 'Calculando...' : 'Calcular probabilidades'}
+                </button>
+
+                {error && <p className="error">{error}</p>}
+            </section>
+
+            {resultado && (
+                <section className="panel">
+                    <h2>Resultados de inferencia</h2>
+
+                    {resultado.distribucion.map((fila, indice) => (
+                        <div className="filaResultado" key={indice}>
+                            <span>
+                                {Object.entries(fila.asignacion)
+                                    .map(([variable, estado]) =>
+                                        `${variable} = ${estado}`
+                                    ).join(', ')}
+                            </span>
+
+                            <strong>
+                                {(fila.probabilidad * 100).toFixed(2)}%
+                            </strong>
+                        </div>
+                    ))}
+
+                    <p>
+                        Probabilidad de evidencia:{' '}
+                        {resultado.probabilidad_evidencia.toFixed(6)}
+                    </p>
+                </section>
+            )}
+
+        </main>
+    );
 }
 
-export default App
+export default App;
