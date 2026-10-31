@@ -55,8 +55,10 @@ def enumerar(red, consulta, evidencia=None):
 
     total = sum(distribucion.values())
 
-    if total == 0:
+    if total <= 0:
         raise ValueError(
+            "La evidencia proporcionada tiene probabilidad cero. "
+            "No se puede calcular la distribución posterior."
         )
 
     return {

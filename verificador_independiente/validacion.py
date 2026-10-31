@@ -24,6 +24,11 @@ def validar_red(red: RedBayesiana):
                 f"El nodo {nombre} tiene estados repetidos."
             )
 
+        if len(nodo.padres) != len(set(nodo.padres)):
+            errores.append(
+                f"El nodo {nombre} tiene padres duplicados."
+            )
+
         for padre in nodo.padres:
             if padre not in nombres:
                 errores.append(

@@ -66,9 +66,30 @@ def probar_motor():
     print("Consulta B con A = a2:", resultado_a2)
     assert abs(resultado_a2["b1"] - 0.2) < 1e-6
     assert abs(resultado_a2["b2"] - 0.8) < 1e-6
+    resultado_oculta = inferir(
+        red,
+        consulta="B",
+        evidencia={"C": "c1"}
+    )
+
+    resultado_oculta_enum = enumerar(
+        red,
+        consulta="B",
+        evidencia={"C": "c1"}
+    )
+
+    print("Consulta B con evidencia C = c1:", resultado_oculta)
+    print("Enumeración con evidencia C = c1:", resultado_oculta_enum)
+
+    assert abs(resultado_oculta["b1"] - 0.5857142857) < 1e-6
+    assert abs(resultado_oculta["b2"] - 0.4142857143) < 1e-6
+
+    for estado in resultado_oculta:
+        assert abs(
+            resultado_oculta[estado] - resultado_oculta_enum[estado]
+        ) < 1e-6
 
     print("Pruebas del motor: correctas.")
-
 
 def probar_probabilidad_incorrecta():
     red = RedBayesiana()
@@ -274,11 +295,71 @@ def probar_evidencia_imposible():
     try:
         inferir(red, consulta="B", evidencia={"A": "a2"})
     except ValueError:
-        print("Prueba de evidencia imposible: correcta.")
+        print("Evidencia imposible en inferencia: correcta.")
     else:
         raise AssertionError(
-            "El motor aceptó una evidencia de probabilidad cero."
+            "Inferencia aceptó evidencia de probabilidad cero."
         )
+
+    try:
+        enumerar(red, consulta="B", evidencia={"A": "a2"})
+    except ValueError as error:
+        assert "probabilidad cero" in str(error)
+        print("Evidencia imposible en enumeración: correcta.")
+        print("Mensaje:", error)
+    else:
+        raise AssertionError(
+            "Enumeración aceptó evidencia de probabilidad cero."
+        )
+
+def probar_padres_duplicados():
+    red = RedBayesiana()
+    red.agregar_nodo(
+        Nodo(
+            nombre="A",
+            estados=["a1", "a2"],
+            cpt={
+                ("a1",): 0.5,
+                ("a2",): 0.5,
+            },
+        )
+    )
+
+    red.agregar_nodo(
+        Nodo(
+            nombre="B",
+            estados=["b1", "b2"],
+            cpt={
+                ("b1",): 0.5,
+                ("b2",): 0.5,
+            },
+        )
+    )
+
+    red.agregar_nodo(
+        Nodo(
+            nombre="C",
+            estados=["c1", "c2"],
+            padres=["A", "A"],
+            cpt={
+                ("a1", "a1", "c1"): 0.5,
+                ("a1", "a1", "c2"): 0.5,
+                ("a1", "a2", "c1"): 0.5,
+                ("a1", "a2", "c2"): 0.5,
+                ("a2", "a1", "c1"): 0.5,
+                ("a2", "a1", "c2"): 0.5,
+                ("a2", "a2", "c1"): 0.5,
+                ("a2", "a2", "c2"): 0.5,
+            },
+        )
+    )
+
+    errores = validar_red(red)
+    assert any("padres duplicados" in error for error in errores), (
+        "No se detectaron los padres duplicados."
+    )
+
+    print("Prueba de padres duplicados: correcta.")
 
 if __name__ == "__main__":
     print("Iniciando pruebas...")
@@ -289,4 +370,5 @@ if __name__ == "__main__":
     probar_consulta_inexistente()
     probar_evidencia_invalida()
     probar_evidencia_imposible()
+    probar_padres_duplicados()
     print("Todas las pruebas terminaron.")
