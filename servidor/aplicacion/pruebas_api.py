@@ -6,7 +6,7 @@ description="Proyecto Modelos Probabilistas",
 version="0.1.0"
 )
 
-@aplicacion_prueba.include_router(router)
+@aplicacion_prueba.get("/")
 def inicio():
     return{
         "nombre": "IDK",
