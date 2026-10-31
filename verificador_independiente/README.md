@@ -62,4 +62,10 @@ Los cambios de este módulo se realizaron en la rama:
 
 `feat/motor-matematico`
 
-La reorganización se publicó en GitHub mediante un commit y un Pull Request dirigido a la rama `main`, para su revisión por el equipo.
+Los cambios de este módulo se realizaron en la rama:
+
+`feat/motor-matematico`
+
+La implementación se publicó en GitHub mediante commits.
+Está pendiente su revisión e integración mediante un Pull Request
+dirigido a la rama `main`.
