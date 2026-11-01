@@ -1,0 +1,37 @@
+
+{
+  "lluvia_aspersor": {
+    "nombre": "Lluvia y Aspersor",
+    "descripcion": "Red clásica de 3 nodos para predecir si el pasto está mojado.",
+    "nodos": [
+      { "id": "lluvia", "label": "Lluvia", "estados": ["Si", "No"] },
+      { "id": "aspersor", "label": "Aspersor", "estados": ["Encendido", "Apagado"] },
+      { "id": "pasto", "label": "Pasto Mojado", "estados": ["Si", "No"] }
+    ],
+    "conexiones": [
+      { "from": "lluvia", "to": "pasto" },
+      { "from": "aspersor", "to": "pasto" }
+    ],
+    "cpt": {
+      "lluvia": { "Si": 0.2, "No": 0.8 },
+      "aspersor": { "Encendido": 0.1, "Apagado": 0.9 }
+    }
+  },
+  "alarma_robo": {
+    "nombre": "Alarma de Terremoto y Robo",
+    "descripcion": "Red de Pearl con 5 nodos sobre la activación de una alarma doméstica.",
+    "nodos": [
+      { "id": "robo", "label": "Robo", "estados": ["Si", "No"] },
+      { "id": "terremoto", "label": "Terremoto", "estados": ["Si", "No"] },
+      { "id": "alarma", "label": "Alarma", "estados": ["Si", "No"] },
+      { "id": "juan_llama", "label": "Juan Llama", "estados": ["Si", "No"] },
+      { "id": "maria_llama", "label": "María Llama", "estados": ["Si", "No"] }
+    ],
+    "conexiones": [
+      { "from": "robo", "to": "alarma" },
+      { "from": "terremoto", "to": "alarma" },
+      { "from": "alarma", "to": "juan_llama" },
+      { "from": "alarma", "to": "maria_llama" }
+    ]
+  }
+}
