@@ -83,8 +83,8 @@ export const clienteApi = {
                 method: 'POST',
                 body: JSON.stringify({
                     red,
-                    variables_consulta: variablesConsulta,
-                    evidencia,
+                    consultas: variablesConsulta,
+                    evidencias: evidencia,
                     mostrar_pasos: mostrarPasos
                 })
             }

@@ -1,0 +1,63 @@
+/* Evidencias multiples IDK */
+
+.editorEvidencias {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #475569;
+}
+
+.editorEvidencias h3 {
+    margin: 0 0 12px;
+}
+
+.listaEvidencias {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.filaEvidencia {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 6px;
+}
+
+.filaEvidencia button {
+    background: #be123c;
+    color: white;
+}
+
+.controlesEvidencia {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.controlesEvidencia label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 145px;
+}
+
+.controlesEvidencia select {
+    width: 100%;
+}
+
+.controlesEvidencia button {
+    align-self: end;
+}
+
+.ayudaEvidencias {
+    font-size: 0.86rem;
+    opacity: 0.8;
+    margin-bottom: 0;
+}

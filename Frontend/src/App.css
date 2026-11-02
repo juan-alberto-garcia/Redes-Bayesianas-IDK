@@ -1,5 +1,40 @@
 
-/* DISEÑO */
+:root {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #f8fafc;
+    background: #0f1219;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    width: 100%;
+    min-width: 320px;
+}
+
+body {
+    display: block;
+    width: 100%;
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: #0f1219;
+    color: #f8fafc;
+    font-size: 16px;
+}
+
+#root {
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
 
 .aplicacion {
     width: 100%;
@@ -9,6 +44,7 @@
 }
 
 /* Encabezado */
+
 .encabezado {
     display: flex;
     justify-content: space-between;
@@ -35,9 +71,11 @@
     color: #4ade80;
     padding: 14px 20px;
     border-radius: 10px;
+    font-size: 14px;
 }
 
 /* Paneles */
+
 .panel {
     min-width: 0;
     background: #181d27;
@@ -54,11 +92,17 @@
     margin: 0 0 20px;
 }
 
-.panel p {
-    color: #aab5c8;
+.panel h3 {
+    color: white;
+    font-size: 20px;
 }
 
-/* TARJETAS DE NODOS */
+.panel p {
+    color: #aab5c8;
+    line-height: 1.5;
+}
+
+/* Tarjetas de nodos */
 
 .nodos {
     display: grid;
@@ -90,14 +134,15 @@
 }
 
 .nodo small {
+    display: block;
     color: #b9c9e2;
     font-size: 14px;
     overflow-wrap: anywhere;
 }
 
-/* BOTONES */
+/* Botones */
 
-button {
+.aplicacion button {
     background: #df2026;
     color: white;
     border: none;
@@ -109,11 +154,11 @@ button {
     transition: background-color 0.2s;
 }
 
-button:hover {
+.aplicacion button:hover {
     background: #b91c1c;
 }
 
-button:disabled {
+.aplicacion button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -126,8 +171,8 @@ button:disabled {
     margin-top: 20px;
 }
 
-/* Renombrar */
-.botonRenombrar {
+.nodo .botonRenombrar {
+    width: 100%;
     margin-top: 12px;
     padding: 10px 12px;
     background: #374151;
@@ -136,51 +181,50 @@ button:disabled {
     font-weight: 500;
 }
 
-.botonRenombrar:hover {
+.nodo .botonRenombrar:hover {
     background: #4b5563;
 }
 
-/* Eliminar */
-.botonEliminar {
+.nodo .botonEliminar {
+    width: 100%;
     padding: 10px 12px;
     background: #7f1d1d;
     font-size: 14px;
 }
 
-.botonEliminar:hover {
+.nodo .botonEliminar:hover {
     background: #991b1b;
 }
 
-/* Conectar */
-.botonSecundario {
+.configuracionPadres .botonSecundario {
+    width: 100%;
     padding: 10px 12px;
     background: #334155;
     font-size: 14px;
 }
 
-.botonSecundario:hover {
+.configuracionPadres .botonSecundario:hover {
     background: #475569;
 }
 
-/* Relaciones existentes */
+/* Relaciones */
+
 .listaPadres {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
 }
 
-.botonPadre {
+.listaPadres .botonPadre {
     padding: 6px 10px;
     background: #374151;
     border: 1px solid #64748b;
     font-size: 13px;
 }
 
-.botonPadre:hover {
+.listaPadres .botonPadre:hover {
     background: #475569;
 }
-
-/* CONFIGURACION DE PADRES */
 
 .configuracionPadres {
     display: flex;
@@ -208,169 +252,67 @@ button:disabled {
     font-size: 15px;
 }
 
-/* CONSULTAS */
+/* Editor grafico */
 
-.campos {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 24px;
-    margin: 26px 0;
-}
-
-.campos label {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-    color: white;
-    font-size: 16px;
-}
-
-.campos select {
+.lienzoGrafo {
     width: 100%;
-    min-width: 0;
-    padding: 14px 16px;
+    height: 460px;
+    border: 1px solid #394252;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #111827;
+}
+
+.lienzoGrafo .react-flow__node-default {
+    min-width: 140px;
+    padding: 12px;
+    background: #f8fafc;
+    color: #111827;
+    border: 1px solid #64748b;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.lienzoGrafo .react-flow__node-default.selected {
+    border: 2px solid #e11d48;
+}
+
+.lienzoGrafo .react-flow__controls {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.aplicacion .lienzoGrafo .react-flow__controls-button {
+    width: 30px;
+    height: 30px;
+    padding: 6px;
     background: #252b38;
-    color: white;
-    border: 1px solid #647087;
-    border-radius: 10px;
-    font-size: 16px;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    border-radius: 0;
 }
 
-select:focus {
-    outline: 2px solid #ef4444;
+.aplicacion .lienzoGrafo .react-flow__controls-button:hover {
+    background: #374151;
 }
 
-select:disabled {
-    opacity: 0.5;
+.lienzoGrafo .react-flow__controls-button svg {
+    fill: currentColor;
 }
 
-/* MENSAJES Y RESULTADOS */
-
-.exito {
-    color: #4ade80 !important;
-    margin-top: 20px;
+.lienzoGrafo .react-flow__minimap {
+    background: #252b38;
+    border: 1px solid #475569;
+    border-radius: 8px;
 }
 
-.error {
-    color: #f87171 !important;
-    margin-top: 20px;
+.detalleNodoGrafo {
+    margin-top: 14px;
+    color: #b9c9e2;
+    font-size: 14px;
 }
 
-.filaResultado {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 20px 0;
-    border-bottom: 1px solid #374151;
-}
-
-.filaResultado span {
-    color: white;
-    font-size: 17px;
-}
-
-.filaResultado strong {
-    color: #4ade80;
-    font-size: 18px;
-}
-
-/* DISEÑO RESPONSIVO */
-
-/* Tablets y ventanas medianas */
-@media (max-width: 900px) {
-
-    .nodos {
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-    }
-
-    .campos {
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-        gap: 18px;
-    }
-
-    .panel {
-        padding: 24px;
-    }
-}
-
-/* Celulares */
-@media (max-width: 640px) {
-
-    .aplicacion {
-        padding: 12px;
-    }
-
-    .encabezado {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 24px;
-    }
-
-    .estado {
-        font-size: 14px;
-        padding: 10px 14px;
-    }
-
-    .panel {
-        padding: 18px;
-        margin-bottom: 16px;
-        border-radius: 12px;
-    }
-
-    .nodos {
-        grid-template-columns: 1fr;
-        gap: 14px;
-    }
-
-    .nodo {
-        padding: 16px;
-    }
-
-    .campos {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-
-    .campos select,
-    .configuracionPadres select {
-        width: 100%;
-        font-size: 16px;
-    }
-
-    .accionesRed {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .accionesRed button {
-        width: 100%;
-    }
-}
-
-/* Celulares pequeños */
-@media (max-width: 380px) {
-
-    .panel {
-        padding: 14px;
-    }
-
-    .nodo {
-        padding: 14px;
-    }
-
-    button {
-        padding: 12px;
-        font-size: 14px;
-    }
-}
-
-/* EDITOR DE TABLAS CPT */
+/* Editor de tablas CPT */
 
 .editorCpt {
     display: flex;
@@ -382,8 +324,10 @@ select:disabled {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    width: 100%;
     max-width: 400px;
     color: white;
+    font-size: 16px;
 }
 
 .selectorNodoCpt select {
@@ -406,18 +350,20 @@ select:disabled {
     border-radius: 10px;
 }
 
+.informacionCpt strong {
+    color: #fff;
+}
+
 .informacionCpt span {
     color: #b9c9e2;
     font-size: 14px;
 }
 
-/* Contenedor de filas */
 .filasCpt {
     display: grid;
     gap: 14px;
 }
 
-/* Cada combinacion de padres */
 .filaCpt {
     padding: 18px;
     background: #202633;
@@ -432,12 +378,15 @@ select:disabled {
     margin-bottom: 16px;
 }
 
+.condicionesCpt strong {
+    color: white;
+}
+
 .condicionesCpt span {
     color: #aab5c8;
     overflow-wrap: anywhere;
 }
 
-/* Campos de probabilidades */
 .probabilidadesCpt {
     display: grid;
     grid-template-columns: repeat(
@@ -469,14 +418,260 @@ select:disabled {
     outline: 2px solid #ef4444;
 }
 
-/* Adaptacion para celulares */
+.editorCpt > button {
+    width: 100%;
+}
+
+/* Consulta probabilistica */
+
+.campos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    margin: 26px 0;
+}
+
+.campos label {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    color: white;
+    font-size: 16px;
+}
+
+.campos select {
+    width: 100%;
+    min-width: 0;
+    padding: 14px 16px;
+    background: #252b38;
+    color: white;
+    border: 1px solid #647087;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+/* Multiples evidencias */
+
+.editorEvidencias {
+    margin-top: 16px;
+    padding-top: 20px;
+    border-top: 1px solid #475569;
+}
+
+.editorEvidencias h3 {
+    margin: 0 0 16px;
+}
+
+.listaEvidencias {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.filaEvidencia {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #252b38;
+    border: 1px solid #475569;
+    border-radius: 10px;
+}
+
+.filaEvidencia span {
+    color: #e5e7eb;
+}
+
+.editorEvidencias .filaEvidencia button {
+    padding: 8px 14px;
+    background: #7f1d1d;
+    font-size: 14px;
+}
+
+.controlesEvidencia {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.controlesEvidencia label {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 160px;
+    gap: 10px;
+    color: white;
+    font-size: 15px;
+}
+
+.controlesEvidencia select {
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    background: #252b38;
+    color: white;
+    border: 1px solid #64748b;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+.controlesEvidencia button {
+    min-height: 46px;
+}
+
+.ayudaEvidencias {
+    margin-top: 16px;
+    color: #aab5c8;
+    font-size: 14px;
+}
+
+select:focus,
+input:focus {
+    outline: 2px solid #ef4444;
+    outline-offset: 1px;
+}
+
+select:disabled {
+    opacity: 0.5;
+}
+
+/* Resultados */
+
+.filaResultado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 20px 0;
+    border-bottom: 1px solid #374151;
+}
+
+.filaResultado span {
+    color: white;
+    font-size: 17px;
+}
+
+.filaResultado strong {
+    color: #4ade80;
+    font-size: 18px;
+}
+
+.exito {
+    color: #4ade80 !important;
+    margin-top: 20px;
+}
+
+.error {
+    color: #f87171 !important;
+    margin-top: 20px;
+}
+
+/* Pantallas medianas */
+
+@media (max-width: 900px) {
+
+    .nodos {
+        grid-template-columns: repeat(
+            2,
+            minmax(0, 1fr)
+        );
+    }
+
+    .campos {
+        grid-template-columns: repeat(
+            2,
+            minmax(0, 1fr)
+        );
+        gap: 18px;
+    }
+
+    .panel {
+        padding: 24px;
+    }
+}
+
+/* Celulares */
+
 @media (max-width: 640px) {
+
+    .aplicacion {
+        padding: 12px;
+    }
+
+    .encabezado {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .encabezado h1 {
+        font-size: 26px;
+    }
+
+    .estado {
+        font-size: 14px;
+        padding: 10px 14px;
+    }
+
+    .panel {
+        padding: 18px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+    }
+
+    .nodos {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .nodo {
+        padding: 16px;
+    }
+
+    .campos {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .selectorNodoCpt {
+        max-width: 100%;
+    }
 
     .filaCpt {
         padding: 14px;
     }
 
-    .selectorNodoCpt {
-        max-width: 100%;
+    .accionesRed {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .accionesRed button {
+        width: 100%;
+    }
+
+    .lienzoGrafo {
+        height: 350px;
+    }
+
+    .controlesEvidencia {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .controlesEvidencia label,
+    .controlesEvidencia button {
+        width: 100%;
+    }
+
+    .filaEvidencia {
+        flex-wrap: wrap;
     }
 }
