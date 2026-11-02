@@ -1,7 +1,8 @@
-
 import { useEffect, useState } from 'react';
 import { clienteApi } from './servicios/clienteApi';
 import EditorCpt from './componentes/EditorCpt';
+import EditorRed from './componentes/EditorRed';
+import 'reactflow/dist/style.css';
 
 import type {
     RedBayes,
@@ -172,14 +173,9 @@ function App() {
     const [conexion, setConexion] =
         useState('Comprobando...');
 
-    // Consulta y evidencia
+    // Consulta y múltiples evidencias (reemplazando los estados anteriores)
     const [consulta, setConsulta] = useState('A');
-
-    const [variableEvidencia, setVariableEvidencia] =
-        useState('B');
-
-    const [estadoEvidencia, setEstadoEvidencia] =
-        useState('Si');
+    const [evidencias, setEvidencias] = useState<Record<string, string>>({});
 
     // Padres seleccionados para cada nodo
     const [padresSeleccionados, setPadresSeleccionados] =
@@ -211,6 +207,18 @@ function App() {
         setMensaje('');
         setError('');
     }
+
+
+    // Función para actualizar el nombre de un nodo desde el editor gráfico
+    const actualizarNombreNodo = (idNodo: string, nuevoNombre: string) => {
+        setRedActual((prevRed) => ({
+            ...prevRed,
+            nodos: prevRed.nodos.map((nodo) => 
+                nodo.id === idNodo ? { ...nodo, nombre: nuevoNombre } : nodo
+            )
+        }));
+        limpiarResultados();
+    };
 
 
     // Agregar un nodo
@@ -271,7 +279,7 @@ function App() {
     }
 
 
-    // Cambiar el nombre de un nodo
+    // Cambiar el nombre de un nodo (método alternativo por prompt)
     function renombrarNodo(id: string) {
 
         const nodoSeleccionado = redActual.nodos.find(
@@ -362,177 +370,12 @@ function App() {
             setConsulta(nodosRestantes[0].id);
         }
 
-        // Actualizar evidencia
-        if (variableEvidencia === id) {
-            setVariableEvidencia('');
-            setEstadoEvidencia('Si');
+        // Limpiar evidencia si el nodo eliminado formaba parte de ella
+        if (evidencias[id]) {
+            const nuevasEvidencias = { ...evidencias };
+            delete nuevasEvidencias[id];
+            setEvidencias(nuevasEvidencias);
         }
-
-        // Limpiar referencias en selectores de padres
-        setPadresSeleccionados(anterior => {
-
-            const nuevos = { ...anterior };
-
-            delete nuevos[id];
-
-            for (const hijoId of Object.keys(nuevos)) {
-                if (nuevos[hijoId] === id) {
-                    nuevos[hijoId] = '';
-                }
-            }
-
-            return nuevos;
-        });
-
-        limpiarResultados();
-    }
-
-
-    // Agregar una relacion padre-hijo
-    function agregarRelacion(
-        idPadre: string,
-        idHijo: string
-    ) {
-
-        const padre = redActual.nodos.find(
-            nodo => nodo.id === idPadre
-        );
-
-        const hijo = redActual.nodos.find(
-            nodo => nodo.id === idHijo
-        );
-
-        // Comprobar nodos
-        if (!padre || !hijo) {
-            setMensaje('');
-            setError('Selecciona un nodo padre valido');
-            return;
-        }
-
-        // Evitar relacion consigo mismo
-        if (idPadre === idHijo) {
-            setMensaje('');
-            setError(
-                'Un nodo no puede ser su propio padre'
-            );
-            return;
-        }
-
-        // Evitar relaciones repetidas
-        if (hijo.padres.includes(idPadre)) {
-            setMensaje('');
-            setError('Esta relacion ya existe');
-            return;
-        }
-
-        // Evitar ciclos dirigidos
-        if (
-            existeCamino(
-                idHijo,
-                idPadre,
-                redActual.nodos
-            )
-        ) {
-            setMensaje('');
-            setError(
-                'No se puede crear la relacion: produciria un ciclo'
-            );
-            return;
-        }
-
-        // Avisar sobre el cambio de CPT
-        const confirmar = window.confirm(
-            'La tabla CPT del nodo hijo se reiniciara ' +
-            'con probabilidades uniformes. ¿Continuar?'
-        );
-
-        if (!confirmar) {
-            return;
-        }
-
-        const padresNuevos = [
-            ...hijo.padres,
-            idPadre
-        ];
-
-        // Generar tabla con nuevas combinaciones
-        const tablaNueva = construirTabla(
-            hijo,
-            padresNuevos,
-            redActual.nodos
-        );
-
-        // Guardar relacion y tabla
-        setRedActual(anterior => ({
-            ...anterior,
-            nodos: anterior.nodos.map(nodo =>
-                nodo.id === idHijo
-                    ? {
-                        ...nodo,
-                        padres: padresNuevos,
-                        tabla: tablaNueva
-                    }
-                    : nodo
-            )
-        }));
-
-        // Limpiar selector
-        setPadresSeleccionados(anterior => ({
-            ...anterior,
-            [idHijo]: ''
-        }));
-
-        limpiarResultados();
-    }
-
-
-    // Eliminar una relacion padre-hijo
-    function quitarRelacion(
-        idPadre: string,
-        idHijo: string
-    ) {
-
-        const hijo = redActual.nodos.find(
-            nodo => nodo.id === idHijo
-        );
-
-        if (!hijo || !hijo.padres.includes(idPadre)) {
-            return;
-        }
-
-        const confirmar = window.confirm(
-            'Se eliminara la relacion y se reiniciara ' +
-            'la tabla CPT del hijo. ¿Continuar?'
-        );
-
-        if (!confirmar) {
-            return;
-        }
-
-        const padresNuevos = hijo.padres.filter(
-            padre => padre !== idPadre
-        );
-
-        // Construir tabla sin ese padre
-        const tablaNueva = construirTabla(
-            hijo,
-            padresNuevos,
-            redActual.nodos
-        );
-
-        // Actualizar nodo hijo
-        setRedActual(anterior => ({
-            ...anterior,
-            nodos: anterior.nodos.map(nodo =>
-                nodo.id === idHijo
-                    ? {
-                        ...nodo,
-                        padres: padresNuevos,
-                        tabla: tablaNueva
-                    }
-                    : nodo
-            )
-        }));
 
         limpiarResultados();
     }
@@ -557,7 +400,6 @@ function App() {
             )
         }));
 
-        // Invalidar resultados anteriores
         limpiarResultados();
     }
 
@@ -586,26 +428,19 @@ function App() {
     }
 
 
-    // Ejecutar eliminacion de variables
+    // Ejecutar inferencia con múltiples evidencias
     async function calcular() {
 
         setCargando(true);
         setError('');
         setResultado(null);
 
-        // Preparar evidencia
-        const evidencia = variableEvidencia
-            ? {
-                [variableEvidencia]: estadoEvidencia
-            }
-            : {};
-
         try {
 
             const respuesta = await clienteApi.inferir(
                 redActual,
-                [consulta],
-                evidencia,
+                [consulta],   // Variable(s) de consulta
+                evidencias,   // Objeto con múltiples evidencias (ej. { B: 'Si', C: 'No' })
                 false
             );
 
@@ -631,7 +466,6 @@ function App() {
 
             {/* Encabezado */}
             <header className="encabezado">
-
                 <div>
                     <h1>Redes Bayesianas IDK</h1>
                     <p>Modelos probabilistas</p>
@@ -640,7 +474,6 @@ function App() {
                 <span className="estado">
                     Backend: {conexion}
                 </span>
-
             </header>
 
 
@@ -656,163 +489,17 @@ function App() {
                 </p>
 
 
-                {/* Mostrar tarjetas de nodos */}
-                <div className="nodos">
-
-                    {redActual.nodos.map(nodo => (
-
-                        <div
-                            className="nodo"
-                            key={nodo.id}
-                        >
-
-                            <strong>{nodo.nombre}</strong>
-
-                            <small>
-                                ID: {nodo.id}
-                            </small>
-
-                            <small>
-                                Estados: {
-                                    nodo.estados.join(', ')
-                                }
-                            </small>
-
-                            <small>
-                                Padres: {
-                                    nodo.padres.join(', ') ||
-                                    'Ninguno'
-                                }
-                            </small>
-
-
-                            {/* Padres actuales */}
-                            <div className="listaPadres">
-
-                                {nodo.padres.map(idPadre => (
-
-                                    <button
-                                        key={idPadre}
-                                        type="button"
-                                        className="botonPadre"
-                                        title="Quitar relacion"
-                                        onClick={() =>
-                                            quitarRelacion(
-                                                idPadre,
-                                                nodo.id
-                                            )
-                                        }
-                                    >
-                                        {idPadre} ×
-                                    </button>
-
-                                ))}
-
-                            </div>
-
-
-                            {/* Seleccionar un nuevo padre */}
-                            <div className="configuracionPadres">
-
-                                <label>
-
-                                    Agregar padre
-
-                                    <select
-                                        value={
-                                            padresSeleccionados[nodo.id] ||
-                                            ''
-                                        }
-                                        onChange={evento =>
-                                            setPadresSeleccionados(
-                                                anterior => ({
-                                                    ...anterior,
-                                                    [nodo.id]:
-                                                        evento.target.value
-                                                })
-                                            )
-                                        }
-                                    >
-
-                                        <option value="">
-                                            Seleccionar
-                                        </option>
-
-                                        {redActual.nodos
-                                            .filter(posiblePadre =>
-                                                posiblePadre.id !== nodo.id &&
-                                                !nodo.padres.includes(
-                                                    posiblePadre.id
-                                                )
-                                            )
-                                            .map(posiblePadre => (
-
-                                                <option
-                                                    key={posiblePadre.id}
-                                                    value={posiblePadre.id}
-                                                >
-                                                    {posiblePadre.nombre}
-                                                </option>
-
-                                            ))}
-
-                                    </select>
-
-                                </label>
-
-
-                                <button
-                                    type="button"
-                                    className="botonSecundario"
-                                    disabled={
-                                        !padresSeleccionados[nodo.id]
-                                    }
-                                    onClick={() =>
-                                        agregarRelacion(
-                                            padresSeleccionados[nodo.id],
-                                            nodo.id
-                                        )
-                                    }
-                                >
-                                    Conectar
-                                </button>
-
-                            </div>
-
-
-                            {/* Renombrar nodo */}
-                            <button
-                                type="button"
-                                className="botonRenombrar"
-                                onClick={() =>
-                                    renombrarNodo(nodo.id)
-                                }
-                            >
-                                Renombrar
-                            </button>
-
-
-                            {/* Eliminar nodo */}
-                            <button
-                                type="button"
-                                className="botonEliminar"
-                                onClick={() =>
-                                    eliminarNodo(nodo.id)
-                                }
-                            >
-                                Eliminar
-                            </button>
-
-                        </div>
-
-                    ))}
-
+                {/* EDITOR GRÁFICO CON REACT FLOW */}
+                <div style={{ width: '100%', height: '500px', border: '1px solid #ddd', borderRadius: '8px', marginTop: '1rem' }}>
+                    <EditorRed 
+                        red={redActual} 
+                        onActualizarNombreNodo={actualizarNombreNodo} 
+                    />
                 </div>
 
 
                 {/* Acciones de la red */}
-                <div className="accionesRed">
-
+                <div className="accionesRed" style={{ marginTop: '1rem' }}>
                     <button
                         type="button"
                         onClick={validar}
@@ -823,13 +510,10 @@ function App() {
                     <button
                         type="button"
                         onClick={agregarNodo}
-                        disabled={
-                            redActual.nodos.length >= 10
-                        }
+                        disabled={redActual.nodos.length >= 10}
                     >
                         + Agregar nodo
                     </button>
-
                 </div>
 
 
@@ -859,14 +543,12 @@ function App() {
             {/* Panel de consulta probabilistica */}
             <section className="panel">
 
-                <h2>Consulta probabilistica</h2>
+                <h2>Consulta probabilística</h2>
 
                 <div className="campos">
 
-
                     {/* Variable de consulta */}
                     <label>
-
                         Variable de consulta
 
                         <select
@@ -875,85 +557,89 @@ function App() {
                                 setConsulta(evento.target.value)
                             }
                         >
-
                             {redActual.nodos.map(nodo => (
-
                                 <option
                                     key={nodo.id}
                                     value={nodo.id}
                                 >
                                     {nodo.nombre}
                                 </option>
-
                             ))}
-
                         </select>
-
                     </label>
 
 
-                    {/* Variable de evidencia */}
-                    <label>
+                    {/* SECCIÓN DE MÚLTIPLES EVIDENCIAS */}
+                    <div style={{ gridColumn: '1 / -1', marginTop: '1rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
+                        <h3>Evidencias múltiples</h3>
 
-                        Variable de evidencia
+                        {/* Listado dinámico de evidencias agregadas */}
+                        {Object.entries(evidencias).length === 0 ? (
+                            <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '0.5rem' }}>No hay evidencias agregadas (consulta marginal).</p>
+                        ) : (
+                            <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {Object.entries(evidencias).map(([idNodo, estado]) => {
+                                    const nodoObj = redActual.nodos.find(n => n.id === idNodo);
+                                    return (
+                                        <div key={idNodo} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f9f9f9', padding: '6px 12px', borderRadius: '6px', border: '1px solid #ddd' }}>
+                                            <span><strong>{nodoObj?.nombre || idNodo}</strong> = {estado}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const nuevasEvidencias = { ...evidencias };
+                                                    delete nuevasEvidencias[idNodo];
+                                                    setEvidencias(nuevasEvidencias);
+                                                    limpiarResultados();
+                                                }}
+                                                style={{ background: '#ff4d4d', color: 'white', border: 'none', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                            >
+                                                Quitar
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
 
-                        <select
-                            value={variableEvidencia}
-                            onChange={evento => {
+                        {/* Controles para añadir una nueva evidencia */}
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                            <select id="selectNuevaEvidencia" defaultValue="" style={{ flex: 1, minWidth: '150px' }}>
+                                <option value="" disabled>Seleccionar variable...</option>
+                                {redActual.nodos
+                                    .filter(nodo => !evidencias[nodo.id] && consulta !== nodo.id)
+                                    .map(nodo => (
+                                        <option key={nodo.id} value={nodo.id}>
+                                            {nodo.nombre}
+                                        </option>
+                                    ))
+                                }
+                            </select>
 
-                                setVariableEvidencia(
-                                    evento.target.value
-                                );
+                            <select id="selectEstadoEvidencia" defaultValue="Si" style={{ width: '100px' }}>
+                                <option value="Si">Si</option>
+                                <option value="No">No</option>
+                            </select>
 
-                                setEstadoEvidencia('Si');
-                            }}
-                        >
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const selectNodo = document.getElementById('selectNuevaEvidencia') as HTMLSelectElement;
+                                    const selectEstado = document.getElementById('selectEstadoEvidencia') as HTMLSelectElement;
 
-                            <option value="">
-                                Sin evidencia
-                            </option>
-
-                            {redActual.nodos.map(nodo => (
-
-                                <option
-                                    key={nodo.id}
-                                    value={nodo.id}
-                                >
-                                    {nodo.nombre}
-                                </option>
-
-                            ))}
-
-                        </select>
-
-                    </label>
-
-
-                    {/* Estado de evidencia */}
-                    <label>
-
-                        Estado de evidencia
-
-                        <select
-                            value={estadoEvidencia}
-                            disabled={!variableEvidencia}
-                            onChange={evento =>
-                                setEstadoEvidencia(
-                                    evento.target.value
-                                )
-                            }
-                        >
-                            <option value="Si">
-                                Si
-                            </option>
-
-                            <option value="No">
-                                No
-                            </option>
-
-                        </select>
-
-                    </label>
+                                    if (selectNodo && selectNodo.value) {
+                                        setEvidencias({
+                                            ...evidencias,
+                                            [selectNodo.value]: selectEstado.value
+                                        });
+                                        selectNodo.value = "";
+                                        limpiarResultados();
+                                    }
+                                }}
+                            >
+                                + Añadir evidencia
+                            </button>
+                        </div>
+                    </div>
 
                 </div>
 
@@ -963,6 +649,7 @@ function App() {
                     type="button"
                     onClick={calcular}
                     disabled={cargando}
+                    style={{ marginTop: '1.5rem' }}
                 >
                     {
                         cargando
