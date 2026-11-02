@@ -78,91 +78,6 @@ const redEjemplo: RedBayes = {
 };
 
 
-// Comprobar si existe un camino dirigido
-function existeCamino(
-    origen: string,
-    destino: string,
-    nodos: NodoBayes[]
-): boolean {
-
-    const pendientes = [origen];
-    const visitados = new Set<string>();
-
-    while (pendientes.length > 0) {
-
-        const actual = pendientes.pop();
-
-        if (!actual) {
-            continue;
-        }
-
-        if (actual === destino) {
-            return true;
-        }
-
-        if (visitados.has(actual)) {
-            continue;
-        }
-
-        visitados.add(actual);
-
-        // Buscar los hijos del nodo actual
-        for (const nodo of nodos) {
-            if (nodo.padres.includes(actual)) {
-                pendientes.push(nodo.id);
-            }
-        }
-    }
-
-    return false;
-}
-
-
-// Construir la tabla cuando cambian los padres
-function construirTabla(
-    nodoHijo: NodoBayes,
-    padresNuevos: string[],
-    nodos: NodoBayes[]
-): FilaProbabilidad[] {
-
-    let combinaciones: Record<string, string>[] = [{}];
-
-    // Generar combinaciones de estados
-    for (const idPadre of padresNuevos) {
-
-        const padre = nodos.find(
-            nodo => nodo.id === idPadre
-        );
-
-        if (!padre) {
-            throw new Error('No se encontro el nodo padre');
-        }
-
-        combinaciones = combinaciones.flatMap(
-            condiciones =>
-                padre.estados.map(estado => ({
-                    ...condiciones,
-                    [idPadre]: estado
-                }))
-        );
-    }
-
-    // Probabilidad uniforme inicial
-    const probabilidadInicial =
-        1 / nodoHijo.estados.length;
-
-    return combinaciones.map(condiciones => ({
-        condiciones,
-        probabilidades: Object.fromEntries(
-            nodoHijo.estados.map(estado => [
-                estado,
-                probabilidadInicial
-            ])
-        )
-    }));
-}
-
-
 function App() {
 
     // Red editable
@@ -173,13 +88,9 @@ function App() {
     const [conexion, setConexion] =
         useState('Comprobando...');
 
-    // Consulta y múltiples evidencias (reemplazando los estados anteriores)
+    // Consulta y múltiples evidencias
     const [consulta, setConsulta] = useState('A');
     const [evidencias, setEvidencias] = useState<Record<string, string>>({});
-
-    // Padres seleccionados para cada nodo
-    const [padresSeleccionados, setPadresSeleccionados] =
-        useState<Record<string, string>>({});
 
     // Resultados
     const [resultado, setResultado] =
@@ -279,108 +190,6 @@ function App() {
     }
 
 
-    // Cambiar el nombre de un nodo (método alternativo por prompt)
-    function renombrarNodo(id: string) {
-
-        const nodoSeleccionado = redActual.nodos.find(
-            nodo => nodo.id === id
-        );
-
-        if (!nodoSeleccionado) {
-            return;
-        }
-
-        const nuevoNombre = window.prompt(
-            'Nuevo nombre del nodo:',
-            nodoSeleccionado.nombre
-        );
-
-        if (nuevoNombre === null) {
-            return;
-        }
-
-        if (!nuevoNombre.trim()) {
-            setMensaje('');
-            setError('El nombre no puede estar vacio');
-            return;
-        }
-
-        // Actualizar solo el nodo seleccionado
-        setRedActual(anterior => ({
-            ...anterior,
-            nodos: anterior.nodos.map(nodo =>
-                nodo.id === id
-                    ? {
-                        ...nodo,
-                        nombre: nuevoNombre.trim()
-                    }
-                    : nodo
-            )
-        }));
-
-        limpiarResultados();
-    }
-
-
-    // Eliminar un nodo
-    function eliminarNodo(id: string) {
-
-        // Conservar minimo 3 nodos
-        if (redActual.nodos.length <= 3) {
-            setMensaje('');
-            setError(
-                'La red debe conservar al menos 3 nodos'
-            );
-            return;
-        }
-
-        // Comprobar si tiene hijos
-        const hijos = redActual.nodos.filter(
-            nodo => nodo.padres.includes(id)
-        );
-
-        if (hijos.length > 0) {
-            setMensaje('');
-            setError(
-                'Primero debes quitar las relaciones de este nodo'
-            );
-            return;
-        }
-
-        const confirmar = window.confirm(
-            '¿Eliminar este nodo de la red?'
-        );
-
-        if (!confirmar) {
-            return;
-        }
-
-        const nodosRestantes = redActual.nodos.filter(
-            nodo => nodo.id !== id
-        );
-
-        // Actualizar la red
-        setRedActual(anterior => ({
-            ...anterior,
-            nodos: nodosRestantes
-        }));
-
-        // Actualizar variable de consulta
-        if (consulta === id) {
-            setConsulta(nodosRestantes[0].id);
-        }
-
-        // Limpiar evidencia si el nodo eliminado formaba parte de ella
-        if (evidencias[id]) {
-            const nuevasEvidencias = { ...evidencias };
-            delete nuevasEvidencias[id];
-            setEvidencias(nuevasEvidencias);
-        }
-
-        limpiarResultados();
-    }
-
-
     // Guardar una tabla CPT editada
     function guardarCpt(
         idNodo: string,
@@ -440,7 +249,7 @@ function App() {
             const respuesta = await clienteApi.inferir(
                 redActual,
                 [consulta],   // Variable(s) de consulta
-                evidencias,   // Objeto con múltiples evidencias (ej. { B: 'Si', C: 'No' })
+                evidencias,   // Objeto con múltiples evidencias
                 false
             );
 
