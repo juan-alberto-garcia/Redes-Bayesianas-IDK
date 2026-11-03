@@ -1,8 +1,10 @@
 
-import { useEffect, useRef, useState } from 'react';
-import type { ChangeEvent } from 'react';
+import { useEffect, useState } from 'react';
+
 import { clienteApi } from './servicios/clienteApi';
 import EditorCpt from './componentes/EditorCpt';
+import EditorEstados from './componentes/EditorEstados';
+import GestorJson from './componentes/GestorJson';
 import EditorConsultaConjunta from './componentes/EditorConsultaConjunta';
 import GrafoBayesiano from './componentes/GrafoBayesiano';
 
@@ -160,7 +162,7 @@ function construirTabla(
 
 function App() {
 
-    const inputArchivoRef = useRef<HTMLInputElement>(null);
+    
 
     // Red editable
     const [redActual, setRedActual] =
@@ -311,78 +313,23 @@ function App() {
         limpiarResultados();
     }
 
-    // Guardar la red completa en un archivo JSON
-    function guardarRed() {
+    // Importar una red validada por GestorJson
+    async function importarRed(nuevaRed: RedBayes): Promise<void> {
 
-        const contenido = JSON.stringify(redActual, null, 2);
+        // Verificar tambien con el backend real de IDK
+        await clienteApi.validar(nuevaRed);
 
-        const archivo = new Blob(
-            [contenido],
-            { type: 'application/json' }
-        );
-
-        const url = URL.createObjectURL(archivo);
-
-        const enlace = document.createElement('a');
-
-        const nombreArchivo =
-            redActual.nombre.replace(/[\\/:*?"<>|]/g, '_') || 'red';
-
-        enlace.href = url;
-        enlace.download = `${nombreArchivo}.json`;
-
-        enlace.click();
-
-        URL.revokeObjectURL(url);
-
-        setMensaje('Red guardada correctamente en JSON');
+        setRedActual(nuevaRed);
+        setConsultas([nuevaRed.nodos[0].id]);
+        setEvidencias([]);
+        setPadresSeleccionados({});
+        setResultado(null);
+        setCargando(false);
         setError('');
-    }
 
-    // Cargar una red desde un archivo JSON
-    async function cargarRed(
-        evento: ChangeEvent<HTMLInputElement>
-    ) {
-
-        const archivo = evento.target.files?.[0];
-
-        if (!archivo) {
-            return;
-        }
-
-        try {
-
-            const contenido = await archivo.text();
-
-            const datos = JSON.parse(contenido) as RedBayes;
-
-            await clienteApi.validar(datos);
-
-            setRedActual(datos);
-
-            setConsultas([datos.nodos[0].id]);
-            setEvidencias([]);
-
-            setPadresSeleccionados({});
-            setResultado(null);
-
-            setMensaje('Red cargada correctamente');
-            setError('');
-
-        } catch (problema) {
-
-            setMensaje('');
-
-            setError(
-                problema instanceof Error
-                    ? problema.message
-                    : 'No se pudo cargar el archivo JSON'
-            );
-
-        } finally {
-
-            evento.target.value = '';
-        }
+        setMensaje(
+            `Red "${nuevaRed.nombre}" importada correctamente.`
+        );
     }
 
     // Agregar un nodo
@@ -723,6 +670,167 @@ function App() {
         }));
     }
 
+    // Guardar los estados de una variable
+    function guardarEstados(
+        idNodo: string,
+        estados: string[]
+    ): { correcto: boolean; mensaje: string } {
+
+        const nodoOriginal = redActual.nodos.find(
+            nodo => nodo.id === idNodo
+        );
+
+        if (!nodoOriginal) {
+            return {
+                correcto: false,
+                mensaje: 'El nodo seleccionado no existe.'
+            };
+        }
+
+        const nuevosEstados = estados.map(
+            estado => estado.trim()
+        );
+
+        if (
+            nuevosEstados.length < 2 ||
+            nuevosEstados.length > 6 ||
+            nuevosEstados.some(
+                estado => estado.length === 0 ||
+                    estado.length > 40
+            )
+        ) {
+            return {
+                correcto: false,
+                mensaje:
+                    'Se requieren de 2 a 6 estados de hasta 40 caracteres.'
+            };
+        }
+
+        const nombres = nuevosEstados.map(
+            estado => estado.toLocaleLowerCase('es')
+        );
+
+        if (new Set(nombres).size !== nombres.length) {
+            return {
+                correcto: false,
+                mensaje: 'Existen estados repetidos.'
+            };
+        }
+
+        const iguales =
+            nuevosEstados.length === nodoOriginal.estados.length &&
+            nuevosEstados.every(
+                (estado, indice) =>
+                    estado === nodoOriginal.estados[indice]
+            );
+
+        if (iguales) {
+            return {
+                correcto: true,
+                mensaje: 'No hubo cambios en los estados.'
+            };
+        }
+
+        // Preparar una copia de la red
+        const nodosNuevos = redActual.nodos.map(nodo =>
+            nodo.id === idNodo
+                ? { ...nodo, estados: [...nuevosEstados] }
+                : nodo
+        );
+
+        // Comprobar tamaÃ±o de las tablas afectadas
+        const afectados = nodosNuevos.filter(nodo =>
+            nodo.id === idNodo ||
+            nodo.padres.includes(idNodo)
+        );
+
+        for (const nodo of afectados) {
+            let filas = 1;
+
+            for (const idPadre of nodo.padres) {
+                const padre = nodosNuevos.find(
+                    actual => actual.id === idPadre
+                );
+
+                if (!padre) {
+                    return {
+                        correcto: false,
+                        mensaje: `No existe el padre ${idPadre}.`
+                    };
+                }
+
+                filas *= padre.estados.length;
+            }
+
+            if (filas > 512) {
+                return {
+                    correcto: false,
+                    mensaje:
+                        `La CPT de ${nodo.nombre} requiere ${filas} filas. ` +
+                        'El limite permitido es 512.'
+                };
+            }
+        }
+
+        const nombresAfectados = afectados
+            .map(nodo => nodo.nombre)
+            .join(', ');
+
+        const confirmar = window.confirm(
+            'Al cambiar los estados se reiniciaran las CPT ' +
+            'de los siguientes nodos:\n\n' +
+            nombresAfectados +
+            '\n\nÂ¿Deseas continuar?'
+        );
+
+        if (!confirmar) {
+            return {
+                correcto: false,
+                mensaje: 'Cambio cancelado.'
+            };
+        }
+
+        // Reconstruir las CPT afectadas
+        const actualizados = nodosNuevos.map(nodo => {
+            const afectado =
+                nodo.id === idNodo ||
+                nodo.padres.includes(idNodo);
+
+            if (!afectado) {
+                return nodo;
+            }
+
+            return {
+                ...nodo,
+                tabla: construirTabla(
+                    nodo,
+                    nodo.padres,
+                    nodosNuevos
+                )
+            };
+        });
+
+        setRedActual(anterior => ({
+            ...anterior,
+            nodos: actualizados
+        }));
+
+        // Eliminar evidencias cuyo estado ya no existe
+        setEvidencias(anteriores =>
+            anteriores.filter(evidencia =>
+                evidencia.variable !== idNodo ||
+                nuevosEstados.includes(evidencia.estado)
+            )
+        );
+
+        limpiarResultados();
+
+        return {
+            correcto: true,
+            mensaje:
+                'Estados guardados. Revisa las CPT reiniciadas.'
+        };
+    }
     // Guardar una tabla CPT editada
     function guardarCpt(
         idNodo: string,
@@ -1002,29 +1110,7 @@ function App() {
                         + Agregar nodo
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={guardarRed}
-                    >
-                        Guardar red JSON
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            inputArchivoRef.current?.click()
-                        }
-                    >
-                        Cargar red JSON
-                    </button>
-
-                    <input
-                        ref={inputArchivoRef}
-                        type="file"
-                        accept=".json,application/json"
-                        style={{ display: 'none' }}
-                        onChange={cargarRed}
-                    />
+                    
 
                 </div>
 
@@ -1043,7 +1129,12 @@ function App() {
 
             </section>
 
-                        {/* Editor grafico React Flow */}
+                                    {/* Gestion JSON avanzada */}
+            <GestorJson
+                red={redActual}
+                onImportar={importarRed}
+            />
+            {/* Editor grafico React Flow */}
             <GrafoBayesiano
                 red={redActual}
                 onConectar={agregarRelacion}
@@ -1051,6 +1142,11 @@ function App() {
                 onMoverNodos={moverNodos}
             />
 
+                        {/* Personalizacion de estados */}
+            <EditorEstados
+                red={redActual}
+                onGuardar={guardarEstados}
+            />
             {/* Editor de tablas CPT */}
             <EditorCpt
                 red={redActual}
