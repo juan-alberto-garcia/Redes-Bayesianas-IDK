@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { clienteApi } from './servicios/clienteApi';
 import EditorCpt from './componentes/EditorCpt';
+import EditorConsultaConjunta from './componentes/EditorConsultaConjunta';
 import GrafoBayesiano from './componentes/GrafoBayesiano';
 
 import type {
@@ -170,7 +171,7 @@ function App() {
         useState('Comprobando...');
 
     // Consulta y múltiples evidencias
-    const [consulta, setConsulta] = useState('A');
+    const [consultas, setConsultas] = useState<string[]>(['A']);
 
     const [evidencias, setEvidencias] = useState<
         { variable: string; estado: string }[]
@@ -205,12 +206,33 @@ function App() {
         setError('');
     }
 
+    // Cambiar consulta individual o conjunta
+    function cambiarConsultas(nuevas: string[]) {
+        const validas = [...new Set(nuevas)].filter(
+            id => redActual.nodos.some(nodo => nodo.id === id)
+        );
+
+        if (validas.length === 0) {
+            return;
+        }
+
+        setConsultas(validas);
+
+        // Consulta y evidencia no pueden compartir variable
+        setEvidencias(anterior =>
+            anterior.filter(
+                item => !validas.includes(item.variable)
+            )
+        );
+
+        limpiarResultados();
+    }
     // Agregar una evidencia
     function agregarEvidencia() {
 
         const disponibles = redActual.nodos.filter(
             nodo =>
-                nodo.id !== consulta &&
+                !consultas.includes(nodo.id) &&
                 !evidencias.some(
                     evidencia => evidencia.variable === nodo.id
                 )
@@ -338,7 +360,7 @@ function App() {
 
             setRedActual(datos);
 
-            setConsulta(datos.nodos[0].id);
+            setConsultas([datos.nodos[0].id]);
             setEvidencias([]);
 
             setPadresSeleccionados({});
@@ -498,9 +520,15 @@ function App() {
             nodos: nodosRestantes
         }));
 
-        if (consulta === id) {
-            setConsulta(nodosRestantes[0].id);
-        }
+        setConsultas(anterior => {
+            const restantes = anterior.filter(
+                variable => variable !== id
+            );
+
+            return restantes.length > 0
+                ? restantes
+                : [nodosRestantes[0].id];
+        });
 
         // Quitar la evidencia si corresponde al nodo eliminado
         setEvidencias(anterior =>
@@ -757,7 +785,7 @@ function App() {
 
             const respuesta = await clienteApi.inferir(
                 redActual,
-                [consulta],
+                consultas,
                 evidencia,
                 false
             );
@@ -1034,53 +1062,13 @@ function App() {
 
                 <h2>Consulta probabilistica</h2>
 
-                <div className="campos">
-
-                    {/* Variable de consulta */}
-                    <label>
-
-                        Variable de consulta
-
-                        <select
-                            value={consulta}
-                            onChange={evento => {
-
-                                const nuevaConsulta =
-                                    evento.target.value;
-
-                                setConsulta(nuevaConsulta);
-
-                                // Una variable no puede ser
-                                // consulta y evidencia a la vez
-                                setEvidencias(anterior =>
-                                    anterior.filter(
-                                        evidencia =>
-                                            evidencia.variable !== nuevaConsulta
-                                    )
-                                );
-
-                                limpiarResultados();
-                            }}
-                        >
-
-                            {redActual.nodos.map(nodo => (
-
-                                <option
-                                    key={nodo.id}
-                                    value={nodo.id}
-                                >
-                                    {nodo.nombre}
-                                </option>
-
-                            ))}
-
-                        </select>
-
-                    </label>
-
-                </div>
-
-                {/* Lista de evidencias */}
+                <EditorConsultaConjunta
+                    red={redActual}
+                    consultas={consultas}
+                    evidencias={evidencias}
+                    onCambiarConsultas={cambiarConsultas}
+                />
+{/* Lista de evidencias */}
                 <div className="evidencias">
 
                     <h3>Evidencias</h3>
@@ -1117,7 +1105,7 @@ function App() {
 
                                         {redActual.nodos
                                             .filter(nodo =>
-                                                nodo.id !== consulta &&
+                                                !consultas.includes(nodo.id) &&
                                                 (
                                                     nodo.id === evidencia.variable ||
                                                     !evidencias.some(
