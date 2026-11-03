@@ -1,4 +1,3 @@
-
 import type {
     RedBayes,
     RespuestaInferencia
@@ -28,6 +27,7 @@ async function solicitar<T>(
                 }
             }
         );
+
     } catch {
         throw new Error(
             'No se pudo conectar con FastAPI'
@@ -37,7 +37,9 @@ async function solicitar<T>(
     const datos = await respuesta.json();
 
     if (!respuesta.ok) {
-        const detalle = datos.detail ?? 'Error del servidor';
+
+        const detalle =
+            datos.detail ?? 'Error del servidor';
 
         throw new Error(
             typeof detalle === 'string'
@@ -60,6 +62,7 @@ export const clienteApi = {
             aplicacion: string;
         }>('/estado'),
 
+
     // Validar una red bayesiana
     validar: (red: RedBayes) =>
         solicitar<{
@@ -69,6 +72,7 @@ export const clienteApi = {
             method: 'POST',
             body: JSON.stringify(red)
         }),
+
 
     // Ejecutar eliminacion de variables
     inferir: (
@@ -81,10 +85,11 @@ export const clienteApi = {
             '/api/inferir',
             {
                 method: 'POST',
+
                 body: JSON.stringify({
                     red,
-                    consultas: variablesConsulta,
-                    evidencias: evidencia,
+                    variables_consulta: variablesConsulta,
+                    evidencia,
                     mostrar_pasos: mostrarPasos
                 })
             }
