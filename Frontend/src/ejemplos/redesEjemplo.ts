@@ -1,4 +1,4 @@
-import type { RedBayesiana } from '../tipos/red';
+import type { RedBayesiana } from './tiposObed';
 
 export const redesEjemplo: RedBayesiana[] = [
   {
