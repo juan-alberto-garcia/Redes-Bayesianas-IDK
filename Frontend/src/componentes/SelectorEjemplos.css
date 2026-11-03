@@ -1,0 +1,66 @@
+.selector-ejemplos-card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+    color: #ffffff;
+  }
+  
+  .selector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .selector-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+  
+  .selector-dropdown {
+    background-color: #0f172a;
+    color: #38bdf8;
+    border: 1px solid #3b82f6;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+  }
+  
+  .selector-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .selector-btn {
+    background-color: #0f172a;
+    color: #94a3b8;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .selector-btn:hover {
+    background-color: #334155;
+    color: #ffffff;
+  }
+  
+  .selector-btn.active {
+    background-color: #2563eb;
+    color: #ffffff;
+    border-color: #3b82f6;
+    font-weight: 600;
+  }
