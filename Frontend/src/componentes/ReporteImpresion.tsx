@@ -11,6 +11,7 @@ import type {
 import logoFie from '../assets/FIE.png';
 import logoUmsnh from '../assets/UMSNH.png';
 
+import ProcedimientoResumenImpresion from './ProcedimientoResumenImpresion';
 import './ReporteImpresion.css';
 
 
@@ -598,46 +599,10 @@ export default function ReporteImpresion({
             </section>
 
 
-            {/* 5. Procedimiento matematico */}
+            {/* 5. Resultados finales */}
             <section className="ri-seccion">
 
-                <h2>
-                    5. Procedimiento de eliminación de variables
-                </h2>
-
-                <div className="ri-pasos">
-                    <p>
-                        Orden de eliminacion: {
-                            resultado.orden_eliminacion.join(', ') || 'Ninguno'
-                        }
-                    </p>
-                    {resultado.pasos.length === 0 ? (
-                        <p>El backend no proporciono pasos detallados.</p>
-                    ) : (
-                        resultado.pasos.map((paso, indice) => (
-                            <pre
-                                key={indice}
-                                style={{
-                                    whiteSpace: 'pre-wrap',
-                                    overflowWrap: 'anywhere',
-                                    fontSize: '9pt'
-                                }}
-                            >
-                                {JSON.stringify(paso, null, 2)}
-                            </pre>
-                        ))
-                    )}
-                </div>
-
-            </section>
-
-
-            {/* 6. Resultados finales */}
-            <section className="ri-seccion">
-
-                <h2>
-                    6. Distribución calculada
-                </h2>
+                <h2>5. Distribución calculada</h2>
 
                 <table className="ri-tabla">
 
@@ -714,6 +679,21 @@ export default function ReporteImpresion({
                 </p>
 
             </section>
+
+            {/* 6. Procedimiento matematico */}
+            <section className="ri-seccion">
+
+                <h2>6. Procedimiento de eliminación de variables</h2>
+
+                                <ProcedimientoResumenImpresion
+                    pasos={resultado.pasos}
+                    orden={resultado.orden_eliminacion}
+                />
+
+            </section>
+
+
+            
 
 
             {/* Pie del reporte */}
