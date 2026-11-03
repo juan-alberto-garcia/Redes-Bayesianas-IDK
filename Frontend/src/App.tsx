@@ -7,6 +7,18 @@ import EditorEstados from './componentes/EditorEstados';
 import GestorJson from './componentes/GestorJson';
 import EditorConsultaConjunta from './componentes/EditorConsultaConjunta';
 import GrafoBayesiano from './componentes/GrafoBayesiano';
+import HistorialConsultas from './componentes/HistorialConsultas';
+import ReporteImpresion from './componentes/ReporteImpresion';
+import {
+    crearFirmaRed,
+    leerHistorial,
+    guardarHistorial,
+    LIMITE_HISTORIAL
+} from './servicios/historialConsultas';
+import type { RegistroConsulta } from './servicios/historialConsultas';
+import { SelectorEjemplos } from './componentes/SelectorEjemplos';
+import { convertirRedObed } from './ejemplos/convertirRedObed';
+import type { RedBayesiana } from './ejemplos/tiposObed';
 
 import type {
     RedBayes,
@@ -191,6 +203,9 @@ function App() {
     const [mensaje, setMensaje] = useState('');
     const [error, setError] = useState('');
     const [cargando, setCargando] = useState(false);
+    // Conservar los resultados de consultas anteriores.
+    const [historial, setHistorial] =
+        useState<RegistroConsulta[]>(leerHistorial);
 
     // Comprobar conexion con FastAPI
     useEffect(() => {
@@ -201,6 +216,10 @@ function App() {
 
     }, []);
 
+    // Actualizar el historial guardado en este navegador.
+    useEffect(() => {
+        guardarHistorial(historial);
+    }, [historial]);
     // Limpiar resultados anteriores
     function limpiarResultados() {
         setResultado(null);
@@ -332,6 +351,29 @@ function App() {
         );
     }
 
+    // C06: cargar ejemplos del PR de Obed conservando el backend original.
+    async function cargarEjemplo(ejemplo: RedBayesiana): Promise<void> {
+        if (!window.confirm(
+            `Cargar "${ejemplo.nombre}"?\nLa red actual sera reemplazada. ` +
+            'Exporta primero un JSON si deseas conservarla.'
+        )) {
+            return;
+        }
+        try {
+            const nuevaRed = convertirRedObed(ejemplo);
+            const validacion = await clienteApi.validar(nuevaRed);
+            if (!validacion.valida) {
+                throw new Error(validacion.mensaje || 'Red no valida');
+            }
+            await importarRed(nuevaRed);
+            setMensaje(`Ejemplo "${ejemplo.nombre}" cargado correctamente.`);
+        } catch (problema) {
+            setMensaje('');
+            setError(problema instanceof Error
+                ? problema.message
+                : 'No se pudo cargar el ejemplo');
+        }
+    }
     // Agregar un nodo
     function agregarNodo() {
 
@@ -875,6 +917,46 @@ function App() {
         }
     }
 
+    // Restaurar resultados y parametros desde el historial.
+    function recuperarConsulta(registro: RegistroConsulta) {
+        const mismaRed = crearFirmaRed(redActual) === registro.firmaRed;
+
+        if (!mismaRed && !window.confirm(
+            'La consulta utiliza una red o CPT distintas. ' +
+            'Exporta tus cambios a JSON antes de continuar. ' +
+            'Deseas reemplazar la red actual?'
+        )) {
+            return;
+        }
+
+        if (!mismaRed) {
+            setRedActual(structuredClone(registro.red));
+            setPadresSeleccionados({});
+        }
+
+        setConsultas([...registro.consultas]);
+
+        setEvidencias(Object.entries(registro.evidencias).map(
+            ([variable, estado]) => ({ variable, estado })
+        ));
+
+        setResultado(structuredClone(registro.resultado));
+        setCargando(false);
+        setError('');
+        setMensaje('Consulta recuperada del historial.');
+    }
+
+    // Eliminar una consulta guardada.
+    function eliminarRegistro(id: string) {
+        setHistorial(anteriores => anteriores.filter(
+            registro => registro.id !== id
+        ));
+    }
+
+    // Vaciar todas las consultas guardadas.
+    function vaciarHistorial() {
+        setHistorial([]);
+    }
     // Ejecutar eliminacion de variables
     async function calcular() {
 
@@ -895,10 +977,31 @@ function App() {
                 redActual,
                 consultas,
                 evidencia,
-                false
+                true
             );
 
             setResultado(respuesta);
+
+            // Guardar una copia de la red, consulta, evidencia y resultado.
+            const redGuardada = structuredClone(redActual);
+            const consultasGuardadas = [...consultas];
+
+            const registro: RegistroConsulta = {
+                id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                fecha: new Date().toISOString(),
+                red: redGuardada,
+                firmaRed: crearFirmaRed(redGuardada),
+                consulta: consultasGuardadas[0],
+                consultaNombre: consultasGuardadas.map(id =>
+                    redGuardada.nodos.find(nodo => nodo.id === id)?.nombre || id
+                ).join(', '),
+                consultas: consultasGuardadas,
+                evidencias: { ...evidencia },
+                resultado: structuredClone(respuesta)
+            };
+
+            setHistorial(anteriores => [registro, ...anteriores]
+                .slice(0, LIMITE_HISTORIAL));
 
         } catch (problema) {
 
@@ -1130,6 +1233,7 @@ function App() {
             </section>
 
                                     {/* Gestion JSON avanzada */}
+            <SelectorEjemplos onSeleccionarRed={cargarEjemplo} />
             <GestorJson
                 red={redActual}
                 onImportar={importarRed}
@@ -1313,6 +1417,13 @@ function App() {
 
                     <h2>Resultados de inferencia</h2>
 
+                    <button
+                        type="button"
+                        onClick={() => window.print()}
+                    >
+                        Imprimir reporte / Guardar PDF
+                    </button>
+
                     {resultado.distribucion.map(
                         (fila, indice) => (
 
@@ -1359,6 +1470,23 @@ function App() {
 
             )}
 
+            <HistorialConsultas
+                registros={historial}
+                onRecuperar={recuperarConsulta}
+                onEliminar={eliminarRegistro}
+                onVaciar={vaciarHistorial}
+            />
+
+            {resultado && (
+                <ReporteImpresion
+                    red={redActual}
+                    consultas={consultas}
+                    evidencias={Object.fromEntries(
+                        evidencias.map(item => [item.variable, item.estado])
+                    )}
+                    resultado={resultado}
+                />
+            )}
         </main>
     );
 }
