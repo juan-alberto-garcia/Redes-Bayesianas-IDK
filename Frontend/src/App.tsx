@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { clienteApi } from './servicios/clienteApi';
 import EditorCpt from './componentes/EditorCpt';
+import GrafoBayesiano from './componentes/GrafoBayesiano';
 
 import type {
     RedBayes,
@@ -664,6 +665,36 @@ function App() {
         limpiarResultados();
     }
 
+        // Guardar las posiciones del editor grafico
+    function moverNodos(
+        movimientos: {
+            id: string;
+            posicion: { x: number; y: number };
+        }[]
+    ) {
+        setRedActual(anterior => ({
+            ...anterior,
+
+            nodos: anterior.nodos.map(nodo => {
+                const movimiento = movimientos.find(
+                    actual => actual.id === nodo.id
+                );
+
+                if (!movimiento) {
+                    return nodo;
+                }
+
+                return {
+                    ...nodo,
+                    posicion: {
+                        x: movimiento.posicion.x,
+                        y: movimiento.posicion.y
+                    }
+                };
+            })
+        }));
+    }
+
     // Guardar una tabla CPT editada
     function guardarCpt(
         idNodo: string,
@@ -983,6 +1014,14 @@ function App() {
                 )}
 
             </section>
+
+                        {/* Editor grafico React Flow */}
+            <GrafoBayesiano
+                red={redActual}
+                onConectar={agregarRelacion}
+                onDesconectar={quitarRelacion}
+                onMoverNodos={moverNodos}
+            />
 
             {/* Editor de tablas CPT */}
             <EditorCpt
